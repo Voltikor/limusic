@@ -31,3 +31,8 @@ rustypipe_reports/
 /plans
 scripts/bench.sh
 scripts/triage.py
+
+# Local audio benchmarks and investigation journals
+/docs/PITCH-PERFORMANCE.md
+/docs/REVERB-PERFORMANCE.md
+/docs/RAM-INVESTIGATION.md

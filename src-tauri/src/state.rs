@@ -2332,6 +2332,7 @@ impl AppState {
     /// player (a second webview, created long after the track started) and the main window on a
     /// cold start both have to ask once instead of guessing.
     pub async fn playback_snapshot(&self) -> serde_json::Value {
+        let (speed, semitones, reverb) = self.player.playback_params();
         let (duration, item) = {
             let q = self.queue.lock().await;
             (q.duration, q.items.get(q.current).cloned())
@@ -2342,6 +2343,9 @@ impl AppState {
             "position": self.current_position(),
             "duration": duration,
             "volume": saved_volume(&self.db),
+            "speed": speed,
+            "semitones": semitones,
+            "reverb": reverb,
         })
     }
 
@@ -2445,6 +2449,17 @@ impl AppState {
         }
     }
 
+    /// Tempo changes do not emit a new mpv duration; refresh the OS timeline immediately.
+    pub async fn media_refresh_timing(&self) {
+        if let Some(m) = &self.media {
+            let secs = self.queue.lock().await.duration;
+            if secs > 0.0 {
+                m.set_duration(secs, self.player.playback_params().0);
+            }
+            self.media_set_playing(self.is_playing.load(Ordering::Relaxed));
+        }
+    }
+
     /// Push play/pause state + the current position to the OS media controls (context/16) and
     /// Discord. The single choke point for play/pause, so both stay in step with mpv. Discord gets
     /// the flag only — its position flows exclusively through the ticks, so a stale
@@ -2456,7 +2471,7 @@ impl AppState {
             let pos = self.current_position();
             // Record what the controls now hold, or the next tick would repeat this very push.
             *self.last_media_state.lock().unwrap() = Some((playing, pos));
-            m.set_playback(playing, pos);
+            m.set_playback(playing, pos, self.player.playback_params().0);
         }
         #[cfg(target_os = "windows")]
         crate::taskbar::set_playing(&self.app, playing);
@@ -2748,7 +2763,7 @@ impl AppState {
         if secs.is_finite() && secs > 0.0 {
             self.queue.lock().await.duration = secs;
             if let Some(m) = &self.media {
-                m.set_duration(secs);
+                m.set_duration(secs, self.player.playback_params().0);
             }
             if let Some(d) = &self.discord {
                 d.set_duration(secs);
@@ -3080,7 +3095,7 @@ impl AppState {
                 if send {
                     *last = Some((playing, pos));
                     drop(last);
-                    m.set_playback(playing, pos);
+                    m.set_playback(playing, pos, self.player.playback_params().0);
                 }
             }
             if let Some(d) = &self.discord {

@@ -238,8 +238,10 @@
 	// Seek, same hold-while-dragging trick as the player bar: incoming mpv ticks must not yank the
 	// thumb back out from under the pointer.
 	let seekDrag = $state<number | null>(null);
-	const shownPosition = $derived(seekDrag ?? playback.position);
-	const pct = $derived(playback.duration ? (shownPosition / playback.duration) * 100 : 0);
+	// Display playback seconds at the selected tempo; mpv seeks still take track seconds.
+	const shownPosition = $derived((seekDrag ?? playback.position) / playback.speed);
+	const shownDuration = $derived(playback.duration / playback.speed);
+	const pct = $derived(shownDuration ? (shownPosition / shownDuration) * 100 : 0);
 
 	const shuffleOn = $derived(playback.queue.shuffle ?? false);
 	const repeat = $derived(playback.queue.repeat ?? 'off');
@@ -519,11 +521,11 @@
 					class="range theater-range w-full"
 					style="--pct:{pct}%"
 					min="0"
-					max={playback.duration || 0}
+					max={shownDuration || 0}
 					value={shownPosition}
-					oninput={(e) => (seekDrag = Number(e.currentTarget.value))}
+					oninput={(e) => (seekDrag = Number(e.currentTarget.value) * playback.speed)}
 					onchange={(e) => {
-						const v = Number(e.currentTarget.value);
+						const v = Number(e.currentTarget.value) * playback.speed;
 						playback.position = v;
 						seekDrag = null;
 						api.seek(v);
@@ -532,7 +534,7 @@
 				/>
 				<div class="mt-2 flex justify-between text-xs font-medium tabular-nums text-muted-foreground">
 					<span>{fmt(shownPosition)}</span>
-					<span>{fmt(playback.duration)}</span>
+					<span>{fmt(shownDuration)}</span>
 				</div>
 			</div>
 
