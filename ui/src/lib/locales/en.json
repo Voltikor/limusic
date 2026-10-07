@@ -744,6 +744,7 @@
 			"presets": "Your presets",
 			"preset_choose": "Choose a preset",
 			"preset_name": "New preset name",
+			"preset_add": "Add preset",
 			"preset_modified": "Modified",
 			"preset_update": "Update preset",
 			"preset_duplicate": "That name is already saved. Choose it to update it, or use a new name.",

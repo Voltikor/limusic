@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Session effects from the player bar's ⋮ menu, reset on restart.
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import { ArrowTurnBackwardIcon } from '@hugeicons/core-free-icons';
+	import { Add01Icon, ArrowTurnBackwardIcon, Delete02Icon } from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
@@ -21,6 +21,7 @@
 	let presets = $state<EffectPreset[]>([]);
 	let selectedName = $state('');
 	let presetName = $state('');
+	let addingPreset = $state(false);
 	let presetError = $state('');
 	let storageReady = $state(true);
 	let selectedPreset = $derived(presets.find((p) => p.name === selectedName));
@@ -62,7 +63,10 @@
 		const next = update ? presets.map((p) => p.name === name ? preset : p) : [...presets, preset];
 		if (persistPresets(next)) {
 			selectedName = name;
-			if (!update) presetName = '';
+			if (!update) {
+				presetName = '';
+				addingPreset = false;
+			}
 		}
 	}
 
@@ -114,7 +118,7 @@
 	}
 </script>
 
-<Dialog.Root bind:open>
+<Dialog.Root bind:open onOpenChange={(value) => { if (!value) { addingPreset = false; presetName = ''; } }}>
 	<Dialog.Content class="max-h-[85dvh] overflow-y-auto gap-4 sm:max-w-4xl">
 		<div class="grid gap-1">
 			<Dialog.Title class="pr-10 text-lg font-semibold">{t('dialogs.tempo_pitch.title')}</Dialog.Title>
@@ -124,39 +128,52 @@
 		</div>
 
 		<!-- Pending updates lock preset actions without flashing their disabled opacity. -->
-		<div class="grid gap-2 rounded-2xl border bg-muted/20 p-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-x-3" aria-busy={playback.effectsPending}>
-			<label for="effect-preset" class="text-sm font-medium sm:col-span-3">{t('dialogs.tempo_pitch.presets')}</label>
-			<Select.Root type="single" value={modified ? '' : selectedName} disabled={!presets.length || playback.effectsPending} onValueChange={selectPreset}>
-				<Select.Trigger id="effect-preset" class={['w-full min-w-0', presets.length && 'disabled:opacity-100']}>
-					<span class="flex-1 truncate text-left">{selectedPreset ? `${selectedPreset.name}${modified ? ` · ${t('dialogs.tempo_pitch.preset_modified')}` : ''}` : t('dialogs.tempo_pitch.preset_choose')}</span>
-				</Select.Trigger>
-				<Select.Content>
-					{#each presets as preset (preset.name)}
-						<Select.Item value={preset.name} label={preset.name}>{preset.name}</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
-			{#if selectedPreset}
-				<div class="flex flex-wrap items-center gap-2 sm:col-start-2 sm:row-start-2">
-					<Button size="sm" variant="outline" class={modified && storageReady ? 'disabled:opacity-100' : undefined} disabled={!modified || !storageReady || playback.effectsPending} onclick={() => savePreset(true)}>{t('dialogs.tempo_pitch.preset_update')}</Button>
-					<Button size="sm" variant="ghost" class={storageReady ? 'disabled:opacity-100' : undefined} disabled={!storageReady || playback.effectsPending} onclick={deletePreset}>{t('common.delete')}</Button>
-				</div>
-			{/if}
-			<form class="flex gap-2 sm:col-start-3 sm:row-start-2" onsubmit={(e) => { e.preventDefault(); savePreset(); }}>
-				<Input bind:value={presetName} class={storageReady ? 'disabled:opacity-100' : undefined} maxlength={PRESET_NAME_MAX} aria-label={t('dialogs.tempo_pitch.preset_name')}
-					placeholder={t('dialogs.tempo_pitch.preset_name')} aria-invalid={duplicateName}
-					aria-describedby={duplicateName ? 'preset-name-error' : undefined} disabled={!storageReady || playback.effectsPending} />
-				<Button type="submit" class={presetName.trim() && !duplicateName && storageReady ? 'disabled:opacity-100' : undefined} disabled={!presetName.trim() || duplicateName || !storageReady || playback.effectsPending}>{t('common.save')}</Button>
-			</form>
-			{#if duplicateName}
-				<p id="preset-name-error" class="text-xs text-destructive sm:col-span-3" role="status">{t('dialogs.tempo_pitch.preset_duplicate')}</p>
+		<div class="grid gap-2 rounded-2xl border bg-muted/20 p-3" aria-busy={playback.effectsPending}>
+			<label for="effect-preset" class="text-sm font-medium">{t('dialogs.tempo_pitch.presets')}</label>
+			<div class="flex flex-wrap items-center gap-2">
+				<Select.Root type="single" value={modified ? '' : selectedName} disabled={!presets.length || playback.effectsPending} onValueChange={selectPreset}>
+					<Select.Trigger id="effect-preset" size="sm" class={['w-64 max-w-full min-w-0', presets.length && 'disabled:opacity-100']}>
+						<span class="flex-1 truncate text-left">{selectedPreset ? `${selectedPreset.name}${modified ? ` · ${t('dialogs.tempo_pitch.preset_modified')}` : ''}` : t('dialogs.tempo_pitch.preset_choose')}</span>
+					</Select.Trigger>
+					<Select.Content>
+						{#each presets as preset (preset.name)}
+							<Select.Item value={preset.name} label={preset.name}>{preset.name}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
+				{#if selectedPreset}
+					{#if modified}
+						<Button size="sm" variant="outline" class={storageReady ? 'disabled:opacity-100' : undefined} disabled={!storageReady || playback.effectsPending} onclick={() => savePreset(true)}>{t('dialogs.tempo_pitch.preset_update')}</Button>
+					{/if}
+					<Button size="icon-sm" variant="ghost" class={['text-muted-foreground hover:bg-destructive/10 hover:text-destructive', storageReady && 'disabled:opacity-100']} aria-label={t('common.delete')} title={t('common.delete')} disabled={!storageReady || playback.effectsPending} onclick={deletePreset}>
+						<HugeiconsIcon icon={Delete02Icon} />
+					</Button>
+				{/if}
+				<Button size="sm" variant="outline" class="sm:ml-auto" aria-expanded={addingPreset} aria-controls="add-effect-preset" disabled={!storageReady || playback.effectsPending} onclick={() => (addingPreset = !addingPreset)}>
+					<HugeiconsIcon icon={Add01Icon} />
+					{t('dialogs.tempo_pitch.preset_add')}
+				</Button>
+			</div>
+			{#if addingPreset}
+				<form id="add-effect-preset" class="grid gap-2 border-t pt-3" onsubmit={(e) => { e.preventDefault(); savePreset(); }}>
+					<div class="flex flex-wrap items-center gap-2">
+						<Input bind:value={presetName} class={['h-8 w-64 max-w-full', storageReady && 'disabled:opacity-100']} maxlength={PRESET_NAME_MAX} aria-label={t('dialogs.tempo_pitch.preset_name')}
+							placeholder={t('dialogs.tempo_pitch.preset_name')} aria-invalid={duplicateName}
+							aria-describedby={duplicateName ? 'preset-name-error' : undefined} disabled={!storageReady || playback.effectsPending} />
+						<Button type="submit" size="sm" class={presetName.trim() && !duplicateName && storageReady ? 'disabled:opacity-100' : undefined} disabled={!presetName.trim() || duplicateName || !storageReady || playback.effectsPending}>{t('common.save')}</Button>
+						<Button size="sm" variant="ghost" onclick={() => { addingPreset = false; presetName = ''; }}>{t('common.cancel')}</Button>
+					</div>
+					{#if duplicateName}
+						<p id="preset-name-error" class="text-xs text-destructive" role="status">{t('dialogs.tempo_pitch.preset_duplicate')}</p>
+					{/if}
+					<p class="text-xs text-muted-foreground">{t('dialogs.tempo_pitch.presets_hint')}</p>
+				</form>
 			{/if}
 			{#if !storageReady || presetError}
-				<p class="text-xs text-destructive sm:col-span-3" role="alert">{!storageReady ? t('dialogs.tempo_pitch.preset_load_error') : presetError}</p>
+				<p class="text-xs text-destructive" role="alert">{!storageReady ? t('dialogs.tempo_pitch.preset_load_error') : presetError}</p>
 			{/if}
-			<p class="text-xs text-muted-foreground sm:col-span-3">{t('dialogs.tempo_pitch.presets_hint')}</p>
 			{#if inRoom()}
-				<p class="text-xs text-muted-foreground sm:col-span-3">{t('dialogs.tempo_pitch.preset_room_hint')}</p>
+				<p class="text-xs text-muted-foreground">{t('dialogs.tempo_pitch.preset_room_hint')}</p>
 			{/if}
 		</div>
 
@@ -234,7 +251,7 @@
 
 		<div class="flex justify-end gap-2">
 			<Button variant="ghost" size="sm" class="h-7 w-fit gap-1.5 px-2 text-xs disabled:opacity-100"
-				disabled={playback.effectsPending} onclick={() => apply(1, 0, { ...DEFAULT_REVERB })}>
+				disabled={playback.effectsPending} onclick={() => { selectedName = ''; apply(1, 0, { ...DEFAULT_REVERB }); }}>
 				<HugeiconsIcon icon={ArrowTurnBackwardIcon} class="h-3.5 w-3.5" />
 				{t('settings.discord.reset')}
 			</Button>

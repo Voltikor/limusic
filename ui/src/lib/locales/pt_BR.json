@@ -611,6 +611,7 @@
 			"presets": "Seus presets",
 			"preset_choose": "Escolha um preset",
 			"preset_name": "Nome do novo preset",
+			"preset_add": "Adicionar preset",
 			"preset_modified": "Modificado",
 			"preset_update": "Atualizar preset",
 			"preset_duplicate": "Esse nome já está salvo. Selecione o preset para atualizá-lo ou use outro nome.",
