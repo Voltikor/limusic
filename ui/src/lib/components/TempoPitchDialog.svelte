@@ -96,6 +96,9 @@
 			: TEMPO.center + (value - TEMPO_SLIDER.midpoint) / (TEMPO_SLIDER.max - TEMPO_SLIDER.midpoint) * (TEMPO.max - TEMPO.center);
 		return Math.round(speed / TEMPO.step) / (1 / TEMPO.step);
 	}
+	const REVERB_TYPES = [
+		'small_room', 'medium_room', 'large_room', 'medium_hall', 'large_hall', 'plate'
+	] as const;
 	const REVERB_CONTROLS = [
 		{ key: 'dry', min: 0, max: 100, step: 1, unit: '%' },
 		{ key: 'wet', min: 0, max: 100, step: 1, unit: '%' },
@@ -193,6 +196,20 @@
 				<p class="mt-1 text-xs text-muted-foreground">{t('dialogs.tempo_pitch.reverb_hint')}</p>
 				{#if playback.reverb.enabled}
 					<div class="mt-3 grid gap-2">
+						<div class="flex flex-wrap items-center gap-2">
+							<label for="reverb-type" class="text-sm">{t('dialogs.tempo_pitch.reverb_type')}</label>
+							<Select.Root type="single" value={String(playback.reverb.preset)} disabled={playback.effectsPending}
+								onValueChange={(value) => { if (value) apply(playback.speed, playback.semitones, { ...playback.reverb, preset: Number(value) }); }}>
+								<Select.Trigger id="reverb-type" size="sm" class="w-72 max-w-full min-w-0 disabled:opacity-100">
+									<span class="min-w-0 flex-1 truncate text-left" title={t(`dialogs.tempo_pitch.reverb_types.${REVERB_TYPES[playback.reverb.preset - 1]}`)}>{t(`dialogs.tempo_pitch.reverb_types.${REVERB_TYPES[playback.reverb.preset - 1]}`)}</span>
+								</Select.Trigger>
+								<Select.Content>
+									{#each REVERB_TYPES as type, i (type)}
+										<Select.Item value={String(i + 1)} label={t(`dialogs.tempo_pitch.reverb_types.${type}`)}>{t(`dialogs.tempo_pitch.reverb_types.${type}`)}</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+						</div>
 						<div class="mt-2 grid gap-4 sm:grid-cols-2 sm:gap-x-6 md:grid-cols-3">
 							{#each REVERB_CONTROLS as control (control.key)}
 								<div class="grid content-start gap-2">

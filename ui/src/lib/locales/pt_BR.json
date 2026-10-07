@@ -622,6 +622,15 @@
 			"pitch": "Tom (Semitons)",
 			"reverb": "Reverberação",
 			"reverb_hint": "Adiciona reflexões de ambiente e uma cauda prolongada ao redor da música original.",
+			"reverb_type": "Tipo de reverberação",
+			"reverb_types": {
+				"small_room": "Sala pequena",
+				"medium_room": "Sala média",
+				"large_room": "Sala grande",
+				"medium_hall": "Salão médio",
+				"large_hall": "Salão grande",
+				"plate": "Placa"
+			},
 			"reverb_levels_hint": "Mantenha Seco em 100% para preservar a música original, ou em 0% para ouvir só a reverberação.",
 			"reverb_controls": {
 				"dry": "Nível seco",

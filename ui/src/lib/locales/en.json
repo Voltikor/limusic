@@ -755,6 +755,15 @@
 			"pitch": "Pitch (Semitones)",
 			"reverb": "Reverb",
 			"reverb_hint": "Adds room reflections and a lingering tail around the original song.",
+			"reverb_type": "Reverb type",
+			"reverb_types": {
+				"small_room": "Small room",
+				"medium_room": "Medium room",
+				"large_room": "Large room",
+				"medium_hall": "Medium hall",
+				"large_hall": "Large hall",
+				"plate": "Plate"
+			},
 			"reverb_levels_hint": "Keep Dry at 100% to preserve the original song, or set it to 0% to hear only the reverb.",
 			"reverb_controls": {
 				"dry": "Dry level",
