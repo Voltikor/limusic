@@ -854,14 +854,7 @@ fn apply_filters(decks: &Decks, deck: usize, af: &AudioFilters) -> Result<(), Er
         }
         chain.push_str(&stretch);
     }
-    // lavfi failures arrive asynchronously. The test seam forces a synchronous af rejection at
-    // the native parser boundary so both graph variants exercise the same rollback path.
-    #[cfg(test)]
-    if NO_RUBBERBAND.get() && (af.semitones != 0 || af.speed != 1.0) {
-        chain.push(',');
-        chain.push_str(pitch_filter());
-    }
-    mpv.set_property("af", chain.as_str()).map_err(|e| {
+    set_filter_chain(mpv, &chain).map_err(|e| {
         if af.reverb.enabled {
             Error::Reverb(e.to_string())
         } else if af.semitones != 0 || af.speed != 1.0 {
@@ -872,6 +865,27 @@ fn apply_filters(decks: &Decks, deck: usize, af: &AudioFilters) -> Result<(), Er
     })?;
     mpv.set_property("speed", af.speed)?;
     Ok(())
+}
+
+fn set_filter_chain(mpv: &Mpv, chain: &str) -> Result<(), libmpv2::Error> {
+    // `af set` initializes the graph and reports failure; writing the `af` property does not.
+    // With no decoded audio it only stores the chain, so validate lavfi on silent stereo first.
+    if chain.contains("lavfi") && mpv.get_property::<MpvNode>("audio-out-params").is_err() {
+        let probe = Mpv::new()?;
+        probe.set_property("ao", "null")?;
+        probe.set_property("vid", "no")?;
+        probe.set_property("pause", true)?;
+        probe.command("loadfile", &["av://lavfi:anullsrc=r=48000:cl=stereo", "replace"])?;
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while probe.get_property::<MpvNode>("audio-out-params").is_err() {
+            if std::time::Instant::now() >= deadline {
+                return Err(libmpv2::Error::Raw(libmpv2::mpv_error::Command));
+            }
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        probe.command("af", &["set", &quoted(chain)])?;
+    }
+    mpv.command("af", &["set", &quoted(chain)])
 }
 
 fn reverb_filter(
